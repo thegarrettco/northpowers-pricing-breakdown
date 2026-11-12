@@ -1,0 +1,406 @@
+<div class="custom-fee-container">
+
+  <div class="heading-container"></div>
+
+  <div class="fee-status" id="fee-status">Loading pricing information&hellip;</div>
+
+  <div class="accordion-container" id="fee-accordion">
+
+    <div class="accordion-section" id="section-applicant">
+      <button class="accordion active" type="button">
+        <img class="icon" src="https://static.wixstatic.com/media/4f7dd4_99046d149a064c21bff0ed410d15c816~mv2.png" alt="Applicant Icon">
+        Applicant Expenses
+      </button>
+      <div class="panel open">
+        <table class="fee-table" id="table1">
+          <thead><tr><th>Charge Description</th><th>Charge Type</th><th>Charge Event</th><th>Actual/Average Amount</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="accordion-section" id="section-essentials">
+      <button class="accordion active" type="button">
+        <img class="icon" src="https://static.wixstatic.com/media/4f7dd4_12e4559005a547368568c0b8903cd994~mv2.png" alt="Essentials Icon">
+        Essentials (Required)
+      </button>
+      <div class="panel open">
+        <table class="fee-table" id="table2">
+          <thead><tr><th>Charge Description</th><th>Charge Type</th><th>Charge Event</th><th>Actual/Average Amount</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="accordion-section" id="section-addons">
+      <button class="accordion active" type="button">
+        <img class="icon" src="https://static.wixstatic.com/media/4f7dd4_8a97cffd1c364f29b05db26e21313467~mv2.png" alt="Add-Ons Icon">
+        Add-Ons (Optional)
+      </button>
+      <div class="panel open">
+        <table class="fee-table" id="table3">
+          <thead><tr><th>Charge Description</th><th>Charge Type</th><th>Charge Event</th><th>Actual/Average Amount</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="accordion-section" id="section-situational">
+      <button class="accordion active" type="button">
+        <img class="icon" src="https://static.wixstatic.com/media/4f7dd4_9f3390bd094c44dda8194cfbf4220fb9~mv2.png" alt="Situational Icon">
+        Situational Fees
+      </button>
+      <div class="panel open">
+        <table class="fee-table" id="table4">
+          <thead><tr><th>Charge Description</th><th>Charge Type</th><th>Charge Event</th><th>Actual/Average Amount</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function () {
+
+  var ASSET_ID   = "39176";
+  var WORKER_URL = "https://pricingtables.bshives.workers.dev";
+  var MERGE_DUPLICATE_LABELS = true;
+
+  // false = render the Garrett North Powers fee sheet (Oct 6, 2026) embedded below.
+  // true  = pull live data from the worker for ASSET_ID instead.
+  var USE_LIVE_DATA = false;
+
+  var LABEL_RENAMES = {
+    "month to month": "Month to Month Rent"
+  };
+
+  var AMOUNT_OVERRIDES = {};
+
+  var CATEGORY_OVERRIDES = {
+    "security deposit": "applicant",
+    "administrative fee": "applicant"
+  };
+
+  var FONT_URL = "https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap";
+  var DASH  = String.fromCharCode(8212);
+  var NDASH = String.fromCharCode(8211);
+  var DOTS  = String.fromCharCode(8230);
+  var TIMES = String.fromCharCode(215);
+  var FAIL_MSG = "Pricing information is temporarily unavailable. Please check back shortly.";
+
+  // Garrett North Powers fee sheet, effective October 6, 2026.
+  // Same shape as the worker's json.data items so it runs through the same pipeline.
+  var FEE_DATA = [
+
+    // Applicant Expenses
+    { label: "Application Fee", frequency: "one_time", value_type: "amount", amount: "34.15", is_required: true, is_situational: false, due_at_timing: "application" },
+    { label: "Holding Deposit", frequency: "one_time", value_type: "amount", amount: "150.00", is_required: true, is_situational: false, due_at_timing: "application" },
+    { label: "Security Deposit", frequency: "one_time", value_type: "range", min_amount: "500.00", max_amount: "1000.00", is_required: true, is_situational: false },
+    { label: "Administrative Fee", frequency: "one_time", value_type: "amount", amount: "250.00", is_required: true, is_situational: false },
+
+    // Essentials (Required)
+    { label: "Utility Account Set-Up Fee (Move-In)", frequency: "one_time", value_type: "amount", amount: "18.00", is_required: true, is_situational: false },
+    { label: "Utility Final Bill Fee (Move-Out)", frequency: "one_time", value_type: "amount", amount: "18.00", is_required: true, is_situational: false },
+    { label: "Luxer Package Locker Set-Up Fee", frequency: "one_time", value_type: "amount", amount: "5.00", is_required: true, is_situational: false },
+    { label: "Valet Trash", frequency: "monthly", value_type: "amount", amount: "21.45", is_required: true, is_situational: false },
+    { label: "Utility Billing Fee", frequency: "monthly", value_type: "amount", amount: "4.00", is_required: true, is_situational: false },
+    { label: "Electric", frequency: "usage", value_type: "text", text_amount: "Varies", is_required: true, is_situational: false },
+    { label: "Water", frequency: "usage", value_type: "text", text_amount: "Varies", is_required: true, is_situational: false },
+    { label: "Sewer", frequency: "usage", value_type: "text", text_amount: "Varies", is_required: true, is_situational: false },
+    { label: "Renter's Liability Insurance", frequency: "monthly", value_type: "text", text_amount: "Varies", is_required: true, is_situational: false },
+
+    // Add-Ons (Optional)
+    { label: "Pet Deposit", frequency: "one_time", value_type: "amount", amount: "300.00", is_required: false, is_situational: false },
+    { label: "Pet Screening", frequency: "one_time", value_type: "amount", amount: "30.00", is_required: false, is_situational: false },
+    { label: "Pet Fee", frequency: "monthly", value_type: "amount", amount: "35.00", is_required: false, is_situational: false },
+    { label: "Internet", frequency: "monthly", value_type: "text", text_amount: "Varies", is_required: false, is_situational: false },
+    { label: "Building-Attached Garage", frequency: "monthly", value_type: "amount", amount: "200.00", is_required: false, is_situational: false },
+    { label: "Building-Storage Rooms", frequency: "monthly", value_type: "amount", amount: "45.00", is_required: false, is_situational: false },
+    { label: "Rent Reporting", frequency: "monthly", value_type: "amount", amount: "8.95", is_required: false, is_situational: false },
+
+    // Situational Fees
+    { label: "Additional Security Deposit", frequency: "one_time", value_type: "amount", amount: "500.00", is_required: false, is_situational: true },
+    { label: "Deposit Alternative Fee", frequency: "monthly", value_type: "range", min_amount: "14.81", max_amount: "30.44", is_required: false, is_situational: true },
+    { label: "Returned Payment Fee (NSF)", frequency: "one_time", value_type: "amount", amount: "20.00", is_required: false, is_situational: true },
+    { label: "Late Fee", frequency: "one_time", value_type: "percentage", percentage_amount: "5% of Base Rent", is_required: false, is_situational: true },
+    { label: "Liability-Only Insurance Waiver (Foxen)", frequency: "monthly", value_type: "amount", amount: "15.00", is_required: false, is_situational: true },
+    { label: "Payment Services", frequency: "usage", value_type: "text", text_amount: "Varies", is_required: false, is_situational: true },
+    { label: "Lease Break Fee", frequency: "one_time", value_type: "text", text_amount: "2" + TIMES + " Monthly Rent", is_required: false, is_situational: true },
+    { label: "Legal / Eviction Fees", frequency: "one_time", value_type: "text", text_amount: "Varies", is_required: false, is_situational: true },
+    { label: "Key Fob Replacement", frequency: "one_time", value_type: "amount", amount: "75.00", is_required: false, is_situational: true },
+    { label: "Garage Remote Replacement", frequency: "one_time", value_type: "amount", amount: "100.00", is_required: false, is_situational: true },
+    { label: "Additional Garage Remote", frequency: "one_time", value_type: "amount", amount: "75.00", is_required: false, is_situational: true },
+    { label: "Apartment Door Key Replacement", frequency: "one_time", value_type: "amount", amount: "5.00", is_required: false, is_situational: true },
+    { label: "Apartment Door Lock Change", frequency: "one_time", value_type: "amount", amount: "50.00", is_required: false, is_situational: true },
+    { label: "Mailbox Key Replacement", frequency: "one_time", value_type: "amount", amount: "5.00", is_required: false, is_situational: true },
+    { label: "Resident Damages", frequency: "one_time", value_type: "text", text_amount: "Varies", is_required: false, is_situational: true }
+
+  ];
+
+  var CSS = [
+    '.custom-fee-container { font-family: Poppins, sans-serif; background-color: rgb(255,255,255); color: rgb(51,51,51); padding: 0; box-sizing: border-box; }',
+    '.custom-fee-container .heading-container { margin-bottom: 0; }',
+    '.custom-fee-container h1 { font-size: 36px; font-weight: 700; margin: 0; color: rgb(34,34,34); }',
+    '.custom-fee-container .accordion-container { max-width: 100%; margin: 0 auto; }',
+    '.custom-fee-container .accordion { background-color: rgb(241,241,241); cursor: pointer; padding: 20px 60px 20px 80px; width: 100%; border: none; text-align: left; outline: none; font-size: 22px; position: relative; min-height: 70px; display: flex; align-items: center; color: rgb(51,51,51); font-family: inherit; }',
+    '.custom-fee-container .accordion:hover { background-color: rgb(221,221,221); }',
+    '.custom-fee-container .accordion img.icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 58px; height: 58px; }',
+    '.custom-fee-container .accordion:after { content: "+"; font-size: 28px; color: rgb(51,51,51); position: absolute; right: 20px; }',
+    '.custom-fee-container .accordion.active:after { content: "-"; }',
+    '.custom-fee-container .accordion-section.empty { display: none; }',
+    '.custom-fee-container .panel { padding: 10px 0 20px 0; background-color: rgb(255,255,255); display: none; font-size: 14px; line-height: 1.6; }',
+    '.custom-fee-container .panel.open { display: block; }',
+    '.custom-fee-container .fee-status { padding: 20px; font-size: 15px; color: rgb(102,102,102); text-align: center; display: none; }',
+    '.custom-fee-container .fee-status.visible { display: block; }',
+    '.custom-fee-container .fee-status.error { color: rgb(192,57,43); }',
+    '.custom-fee-container table.fee-table { width: 100%; border-collapse: collapse; border: 1px solid rgb(204,204,204); font-size: 14px; margin-top: 10px; }',
+    '.custom-fee-container table.fee-table th, .custom-fee-container table.fee-table td { border: 1px solid rgb(204,204,204); padding: 8px; text-align: left; vertical-align: top; }',
+    '.custom-fee-container table.fee-table th { background-color: rgb(249,249,249); font-weight: 600; }',
+    '.custom-fee-container .fee-table th:nth-child(1), .custom-fee-container .fee-table td:nth-child(1) { width: 35%; }',
+    '.custom-fee-container .fee-table th:nth-child(2), .custom-fee-container .fee-table td:nth-child(2) { width: 20%; }',
+    '.custom-fee-container .fee-table th:nth-child(3), .custom-fee-container .fee-table td:nth-child(3) { width: 20%; }',
+    '.custom-fee-container .fee-table th:nth-child(4), .custom-fee-container .fee-table td:nth-child(4) { width: 25%; }',
+    '.custom-fee-container .fee-note { display: block; font-size: 12px; color: rgb(119,119,119); line-height: 1.3; }',
+    '@media (max-width: 650px) {',
+    '  .custom-fee-container .accordion { font-size: 13px; padding: 20px 60px 20px 60px; }',
+    '  .custom-fee-container .accordion img.icon { width: 40px; height: 40px; left: 10px; }',
+    '  .custom-fee-container .accordion:after { font-size: 18px; right: 16px; }',
+    '  .custom-fee-container .panel { font-size: 13px; }',
+    '  .custom-fee-container .fee-table th, .custom-fee-container .fee-table td { font-size: 10px; padding: 6px; }',
+    '  .custom-fee-container .fee-note { font-size: 9px; }',
+    '  .custom-fee-container .fee-table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }',
+    '}'
+  ].join("\n");
+
+  var EMBED_CSS = [
+    'html, body { margin: 0; }',
+    'html { overflow-y: scroll; overflow-x: hidden; scrollbar-width: none; -ms-overflow-style: none; }',
+    'html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; width: 0; height: 0; }'
+  ].join("\n");
+
+  function addStyle(id, text) {
+    if (document.getElementById(id)) return;
+    var st = document.createElement("style");
+    st.id = id;
+    st.appendChild(document.createTextNode(text));
+    (document.head || document.documentElement).appendChild(st);
+  }
+
+  function addFont() {
+    if (document.getElementById("cfc-pricing-font")) return;
+    var ln = document.createElement("link");
+    ln.id = "cfc-pricing-font";
+    ln.rel = "stylesheet";
+    ln.href = FONT_URL;
+    (document.head || document.documentElement).appendChild(ln);
+  }
+
+  function money(n) {
+    return "$" + Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function formatFrequency(freq) {
+    if (!freq) return DASH;
+    if (freq === "one_time") return "One Time";
+    if (freq === "monthly") return "Fixed Rate";
+    return "Varies by Usage";
+  }
+
+  function formatEvent(item) {
+    if (item.is_situational) return "Situational";
+    if (item.is_required) return "Required";
+    return "Optional";
+  }
+
+  function getCategory(item) {
+    var lk = String(item.label || "").trim().toLowerCase();
+    if (Object.prototype.hasOwnProperty.call(CATEGORY_OVERRIDES, lk)) return CATEGORY_OVERRIDES[lk];
+    if (item.is_situational) return "situational";
+    if (item.due_at_timing === "application") return "applicant";
+    if (item.is_required) return "essentials";
+    return "addons";
+  }
+
+  function levelNote(level) {
+    if (level === "unit") return "Varies by unit";
+    return "";
+  }
+
+  function resolveAmount(item) {
+    var s = item.entries_summary;
+    if (s && s.min != null && s.max != null) return { min: s.min, max: s.max, text: null };
+    if (item.value_type === "range") {
+      var lo = parseFloat(item.min_amount), hi = parseFloat(item.max_amount);
+      if (isFinite(lo) && isFinite(hi)) return { min: lo, max: hi, text: null };
+      return { min: null, max: null, text: "Varies" };
+    }
+    if (item.value_type === "amount") {
+      var a = parseFloat(item.amount);
+      if (isFinite(a)) return { min: a, max: a, text: null };
+      return { min: null, max: null, text: DASH };
+    }
+    if (item.value_type === "percentage") return { min: null, max: null, text: item.percentage_amount || DASH };
+    if (item.value_type === "text") return { min: null, max: null, text: item.text_amount || "Varies" };
+    return { min: null, max: null, text: DASH };
+  }
+
+  function buildBuckets(raw) {
+    var buckets = { applicant: [], essentials: [], addons: [], situational: [] };
+    var index = {};
+    raw.forEach(function (item) {
+      if (item.is_enabled === false) return;
+      var cat = getCategory(item);
+      var lk = String(item.label || "").trim().toLowerCase();
+      var hasOverride = Object.prototype.hasOwnProperty.call(AMOUNT_OVERRIDES, lk);
+      var amt = hasOverride ? { min: null, max: null, text: AMOUNT_OVERRIDES[lk] } : resolveAmount(item);
+      var row = {
+        description: Object.prototype.hasOwnProperty.call(LABEL_RENAMES, lk) ? LABEL_RENAMES[lk] : item.label,
+        chargeType: formatFrequency(item.frequency),
+        event: formatEvent(item),
+        min: amt.min, max: amt.max, text: amt.text,
+        notes: hasOverride ? [] : [levelNote(item.level)]
+      };
+      var key = cat + "|" + lk;
+      var existing = index[key];
+      if (MERGE_DUPLICATE_LABELS && existing && existing.min != null && row.min != null) {
+        existing.min = Math.min(existing.min, row.min);
+        existing.max = Math.max(existing.max, row.max);
+        row.notes.forEach(function (n) {
+          if (n && existing.notes.indexOf(n) === -1) existing.notes.push(n);
+        });
+        return;
+      }
+      buckets[cat].push(row);
+      if (!existing) index[key] = row;
+    });
+    return buckets;
+  }
+
+  function textCell(text) {
+    var td = document.createElement("td");
+    td.textContent = text == null ? "" : String(text);
+    return td;
+  }
+
+  function amountCell(row) {
+    var td = document.createElement("td");
+    var main;
+    if (row.min != null && row.max != null) {
+      main = row.min === row.max ? money(row.min) : money(row.min) + " " + NDASH + " " + money(row.max);
+    } else {
+      main = row.text == null ? "" : String(row.text);
+    }
+    td.appendChild(document.createTextNode(main));
+    var notes = row.notes.filter(Boolean);
+    if (notes.length) {
+      var span = document.createElement("span");
+      span.className = "fee-note";
+      span.textContent = notes.join(" / ");
+      td.appendChild(span);
+    }
+    return td;
+  }
+
+  function populateTable(tableId, rows) {
+    var table = document.getElementById(tableId);
+    if (!table) return;
+    var tbody = table.getElementsByTagName("tbody")[0];
+    if (!tbody) return;
+    while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+    var section = table.closest(".accordion-section");
+    if (rows.length === 0) {
+      if (section) section.classList.add("empty");
+      return;
+    }
+    if (section) section.classList.remove("empty");
+    rows.forEach(function (row) {
+      var tr = document.createElement("tr");
+      tr.appendChild(textCell(row.description));
+      tr.appendChild(textCell(row.chargeType));
+      tr.appendChild(textCell(row.event));
+      tr.appendChild(amountCell(row));
+      tbody.appendChild(tr);
+    });
+  }
+
+  function showStatus(msg, isError) {
+    var el = document.getElementById("fee-status");
+    if (!el) return;
+    el.textContent = msg;
+    el.className = "fee-status visible" + (isError ? " error" : "");
+  }
+
+  function hideStatus() {
+    var el = document.getElementById("fee-status");
+    if (el) el.className = "fee-status";
+  }
+
+  function bindAccordions(container) {
+    var buttons = container.getElementsByClassName("accordion");
+    Array.prototype.forEach.call(buttons, function (btn) {
+      btn.addEventListener("click", function () {
+        btn.classList.toggle("active");
+        var panel = btn.nextElementSibling;
+        if (panel) panel.classList.toggle("open");
+      });
+    });
+  }
+
+  function renderFees(data) {
+    var b = buildBuckets(data);
+    populateTable("table1", b.applicant);
+    populateTable("table2", b.essentials);
+    populateTable("table3", b.addons);
+    populateTable("table4", b.situational);
+    hideStatus();
+  }
+
+  function loadFees() {
+    if (!USE_LIVE_DATA) {
+      renderFees(FEE_DATA);
+      return;
+    }
+    showStatus("Loading pricing information" + DOTS, false);
+    fetch(WORKER_URL + "?asset=" + encodeURIComponent(ASSET_ID))
+      .then(function (res) {
+        if (!res.ok) throw new Error("Worker returned HTTP " + res.status);
+        return res.json();
+      })
+      .then(function (json) {
+        if (!json.data || !Array.isArray(json.data)) throw new Error("Unexpected API response");
+        if (json.warnings && json.warnings.length) console.warn("Pricing warnings:", json.warnings);
+        renderFees(json.data);
+      })
+      .catch(function (err) {
+        console.error("Pricing load error:", err);
+        showStatus(FAIL_MSG, true);
+      });
+  }
+
+  var started = false;
+
+  function start() {
+    if (started) return true;
+    var container = document.getElementsByClassName("custom-fee-container")[0];
+    if (!container || !document.getElementById("table1")) return false;
+    started = true;
+    bindAccordions(container);
+    loadFees();
+    return true;
+  }
+
+  addStyle("cfc-pricing-css", CSS);
+  addFont();
+  if (window.parent !== window) addStyle("cfc-pricing-embed-css", EMBED_CSS);
+
+  if (!start()) {
+    var observer = new MutationObserver(function () {
+      if (start()) observer.disconnect();
+    });
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+  }
+
+})();
+</script>
